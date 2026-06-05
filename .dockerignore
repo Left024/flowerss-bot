@@ -1,0 +1,9 @@
+.git
+config.yml
+*.db
+flowerss-bot
+conf
+docs
+.gitignore
+*.md
+.goreleaser.yml
