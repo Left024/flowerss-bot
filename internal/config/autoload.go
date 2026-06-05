@@ -114,6 +114,10 @@ func init() {
 		UpdateInterval = viper.GetInt("update_interval")
 	}
 
+	if viper.IsSet("fetch_interval") {
+		FetchInterval = viper.GetInt("fetch_interval")
+	}
+
 	if viper.IsSet("mysql.host") {
 		EnableMysql = true
 		mysqlConfig = mysql.NewConfig()

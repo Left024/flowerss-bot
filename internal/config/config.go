@@ -35,6 +35,9 @@ var (
 	// UpdateInterval rss抓取间隔
 	UpdateInterval int = 10
 
+	// FetchInterval rss源之间抓取间隔（秒），0表示无间隔
+	FetchInterval int = 0
+
 	// ErrorThreshold rss源抓取错误阈值
 	ErrorThreshold uint = 100
 

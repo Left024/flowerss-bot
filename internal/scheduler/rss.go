@@ -94,6 +94,10 @@ func (t *RssUpdateTask) Start() {
 					}
 					t.notifyAllObserverUpdate(source, newContents, subs)
 				}
+
+				if config.FetchInterval > 0 {
+					time.Sleep(time.Duration(config.FetchInterval) * time.Second)
+				}
 			}
 
 			time.Sleep(time.Duration(config.UpdateInterval) * time.Minute)
