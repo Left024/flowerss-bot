@@ -5,9 +5,10 @@ import (
 	"errors"
 	"fmt"
 	"strings"
-	"sync"
+	"time"
 
 	"github.com/indes/flowerss-bot/internal/bot/session"
+	"github.com/indes/flowerss-bot/internal/config"
 	"github.com/indes/flowerss-bot/internal/core"
 	"github.com/indes/flowerss-bot/internal/log"
 	"github.com/indes/flowerss-bot/internal/opml"
@@ -65,49 +66,41 @@ func (o *OnDocument) Handle(ctx tb.Context) error {
 	}
 
 	outlines, _ := opmlFile.GetFlattenOutlines()
-	var failImportList = make([]opml.Outline, len(outlines))
-	failIndex := 0
-	var successImportList = make([]opml.Outline, len(outlines))
-	successIndex := 0
-	wg := &sync.WaitGroup{}
+	var failImportList []opml.Outline
+	var successImportList []opml.Outline
 	for _, outline := range outlines {
-		outline := outline
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-			source, err := o.core.CreateSource(context.Background(), outline.XMLURL)
-			if err != nil {
-				failImportList[failIndex] = outline
-				failIndex++
-				return
-			}
+		source, err := o.core.CreateSource(context.Background(), outline.XMLURL)
+		if err != nil {
+			log.Errorf("import source [%s] failed, %v", outline.XMLURL, err)
+			failImportList = append(failImportList, outline)
+			continue
+		}
 
-			err = o.core.AddSubscription(context.Background(), userID, source.ID)
-			if err != nil {
-				if err == core.ErrSubscriptionExist {
-					successImportList[successIndex] = outline
-					successIndex++
-				} else {
-					failImportList[failIndex] = outline
-					failIndex++
-				}
-				return
+		err = o.core.AddSubscription(context.Background(), userID, source.ID)
+		if err != nil {
+			if err == core.ErrSubscriptionExist {
+				successImportList = append(successImportList, outline)
+			} else {
+				failImportList = append(failImportList, outline)
 			}
+			continue
+		}
 
-			log.Infof("%d subscribe [%d]%s %s", ctx.Chat().ID, source.ID, source.Title, source.Link)
-			successImportList[successIndex] = outline
-			successIndex++
-			return
-		}()
+		log.Infof("%d subscribe [%d]%s %s", ctx.Chat().ID, source.ID, source.Title, source.Link)
+		successImportList = append(successImportList, outline)
+
+		if config.FetchInterval > 0 {
+			time.Sleep(time.Duration(config.FetchInterval) * time.Second)
+		}
 	}
-	wg.Wait()
 
 	var msg strings.Builder
-	msg.WriteString(fmt.Sprintf("<b>导入成功：%d，导入失败：%d</b>\n", successIndex, failIndex))
-	if successIndex != 0 {
+	successCount := len(successImportList)
+	failCount := len(failImportList)
+	msg.WriteString(fmt.Sprintf("<b>导入成功：%d，导入失败：%d</b>\n", successCount, failCount))
+	if successCount != 0 {
 		msg.WriteString("<b>以下订阅源导入成功:</b>\n")
-		for i := 0; i < successIndex; i++ {
-			line := successImportList[i]
+		for i, line := range successImportList {
 			if line.Text != "" {
 				msg.WriteString(
 					fmt.Sprintf("[%d] <a href=\"%s\">%s</a>\n", i+1, line.XMLURL, line.Text),
@@ -120,10 +113,9 @@ func (o *OnDocument) Handle(ctx tb.Context) error {
 		msg.WriteString("\n")
 	}
 
-	if failIndex != 0 {
+	if failCount != 0 {
 		msg.WriteString("<b>以下订阅源导入失败:</b>\n")
-		for i := 0; i < failIndex; i++ {
-			line := failImportList[i]
+		for i, line := range failImportList {
 			if line.Text != "" {
 				msg.WriteString(fmt.Sprintf("[%d] <a href=\"%s\">%s</a>\n", i+1, line.XMLURL, line.Text))
 			} else {
