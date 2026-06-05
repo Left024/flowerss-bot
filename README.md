@@ -17,6 +17,10 @@
 - 支持为 Group 和 Channel 订阅 RSS 消息
 - 丰富的订阅设置
 
+## Fork 新增
+
+- **RSS 源抓取间隔**：新增 `fetch_interval` 配置（秒），在每两个 RSS 源之间插入等待时间，避免对 RSS 服务器造成瞬时压力
+
 ## 安装与使用
 
 详细安装与使用方法请查阅项目[使用文档](https://flowerss-bot.now.sh/)。  
