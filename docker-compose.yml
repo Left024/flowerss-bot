@@ -9,7 +9,7 @@ services:
     image: flowerss-bot
     volumes:
       - ./conf:/root/.flowerss
-    restart: unless-stopped
+    restart: always
     deploy:
       replicas: 1
       resources:
